@@ -98,55 +98,93 @@ async function solve2Captcha(type, sitekey, pageUrl) {
 
 function getCsrfToken() {
   const cookieJar = path.join(__dirname, `cookies_${Date.now()}.txt`);
+  const headerFile = path.join(__dirname, `headers_${Date.now()}.txt`);
 
-  const args = [
-    '-s', '-o', devNull,
-    '-c', cookieJar,
-    '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    '-H', 'Accept: text/html,application/xhtml+xml',
+  // Intentar múltiples endpoints — /sanctum/csrf-cookie es el oficial de Laravel
+  const endpoints = [
+    `${FINESA_URL}/sanctum/csrf-cookie`,
+    `${FINESA_URL}/autenticacion`,
   ];
 
-  if (useProxy) {
-    args.push('-x', `http://${GEONODE_USER}:${GEONODE_PASS}@${GEONODE_HOST}:${GEONODE_PORT}`);
-  }
+  for (const endpoint of endpoints) {
+    const args = [
+      '-s', '-o', devNull,
+      '-D', headerFile,
+      '-c', cookieJar,
+      '-b', cookieJar,
+      '-L', // seguir redirects
+      '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      '-H', 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      '-H', 'Accept-Language: es-CO,es;q=0.9,en;q=0.8',
+      '-H', `Referer: ${FINESA_URL}/`,
+      '-H', 'sec-ch-ua: "Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+      '-H', 'sec-ch-ua-mobile: ?0',
+      '-H', 'sec-ch-ua-platform: "Windows"',
+      '-H', 'Sec-Fetch-Dest: document',
+      '-H', 'Sec-Fetch-Mode: navigate',
+      '-H', 'Sec-Fetch-Site: same-origin',
+      '-H', 'Sec-Fetch-User: ?1',
+      '-H', 'Upgrade-Insecure-Requests: 1',
+      '--tlsv1.2',
+      '--http2',
+    ];
 
-  args.push(`${FINESA_URL}/autenticacion`);
+    if (useProxy) {
+      args.push('-x', `http://${GEONODE_USER}:${GEONODE_PASS}@${GEONODE_HOST}:${GEONODE_PORT}`);
+    }
 
-  try {
-    execFileSync('curl', args, { encoding: 'utf8', timeout: 30000 });
-  } catch (e) {
-    console.error('[CSRF] Error en GET:', e.message);
-  }
+    args.push(endpoint);
 
-  // Leer cookies
-  let xsrfToken = '';
-  let allCookies = '';
+    console.log(`[CSRF] GET ${endpoint}...`);
+    try {
+      execFileSync('curl', args, { encoding: 'utf8', timeout: 30000 });
+    } catch (e) {
+      console.error(`[CSRF] Error en GET ${endpoint}:`, e.message);
+      continue;
+    }
 
-  if (fs.existsSync(cookieJar)) {
-    const content = fs.readFileSync(cookieJar, 'utf8');
-    const lines = content.split('\n');
+    // Mostrar HTTP status
+    if (fs.existsSync(headerFile)) {
+      const headers = fs.readFileSync(headerFile, 'utf8');
+      const statusLine = headers.split('\n').find(l => l.startsWith('HTTP'));
+      console.log(`[CSRF] Response: ${(statusLine || '').trim()}`);
+      try { fs.unlinkSync(headerFile); } catch {}
+    }
 
-    const cookies = [];
-    for (const line of lines) {
-      if (line.startsWith('#') || !line.trim()) continue;
-      const parts = line.split('\t');
-      if (parts.length >= 7) {
-        cookies.push(`${parts[5]}=${parts[6]}`);
-        if (parts[5] === 'XSRF-TOKEN') {
-          xsrfToken = decodeURIComponent(parts[6]);
+    // Leer cookies
+    if (fs.existsSync(cookieJar)) {
+      const content = fs.readFileSync(cookieJar, 'utf8');
+      console.log(`[CSRF] Cookie jar:\n${content}`);
+
+      let xsrfToken = '';
+      const cookies = [];
+      const lines = content.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('#') || !line.trim()) continue;
+        const parts = line.split('\t');
+        if (parts.length >= 7) {
+          cookies.push(`${parts[5]}=${parts[6]}`);
+          if (parts[5] === 'XSRF-TOKEN') {
+            xsrfToken = decodeURIComponent(parts[6]);
+          }
         }
       }
-    }
-    allCookies = cookies.join('; ');
 
-    // Limpiar
-    try { fs.unlinkSync(cookieJar); } catch {}
+      if (xsrfToken) {
+        const allCookies = cookies.join('; ');
+        console.log(`[CSRF] ✓ XSRF-TOKEN encontrado`);
+        try { fs.unlinkSync(cookieJar); } catch {}
+        return { xsrfToken, cookies: allCookies };
+      }
+    }
   }
 
-  console.log(`[CSRF] XSRF-TOKEN: ${xsrfToken ? xsrfToken.substring(0, 20) + '...' : 'NO ENCONTRADO'}`);
-  console.log(`[CSRF] Cookies: ${allCookies ? allCookies.substring(0, 60) + '...' : 'NINGUNA'}`);
+  // Limpiar archivos
+  try { fs.unlinkSync(cookieJar); } catch {}
+  try { fs.unlinkSync(headerFile); } catch {}
 
-  return { xsrfToken, cookies: allCookies };
+  return { xsrfToken: '', cookies: '' };
 }
 
 // ============================================================
