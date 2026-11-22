@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finesa - Pago Fácil</title>
+    <style>
+        /* --- ESTILOS GENERALES --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-image: url('image.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- HEADER --- */
+        header {
+            width: 100%;
+            padding: 30px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-container img {
+            height: 45px;
+            width: auto;
+        }
+
+        .btn-portal-desktop {
+            background-color: #002d72;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: background-color 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-portal-desktop:hover {
+            background-color: #001f4d;
+        }
+
+        /* --- CONTENEDOR PRINCIPAL --- */
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* --- TARJETA DE PAGO --- */
+        .card {
+            background-color: #f4f4f4;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            width: 100%;
+            background-color: #e2e2e2;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px 10px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #555;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background-color: #f4f4f4;
+            color: #00a3e0;
+            border-bottom: 3px solid #00a3e0;
+            font-weight: 600;
+        }
+
+        .form-content {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .form-content h2 {
+            color: #002d72;
+            font-size: 22px;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+
+        .form-content p.subtitle {
+            color: #444;
+            font-size: 16px;
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #00a3e0;
+            font-size: 15px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 8px 0;
+            border: none;
+            border-bottom: 1px solid #00a3e0;
+            background-color: transparent;
+            font-size: 15px;
+            color: #333;
+            outline: none;
+        }
+
+        .input-group input::placeholder {
+            color: #666;
+        }
+
+        /* =========================================
+           TURNSTILE WIDGET (real Cloudflare)
+           ========================================= */
+        .turnstile-container {
+            margin: 25px auto 0 auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .captcha-status {
+            text-align: center;
+            font-size: 13px;
+            margin-top: 8px;
+            color: #22c55e;
+            display: none;
+        }
+
+        /* --- BOTON INGRESAR --- */
+        .btn-ingresar {
+            display: none;
+            background-color: #00a3e0;
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s, transform 0.1s;
+            width: 60%;
+        }
+
+        .btn-ingresar.visible {
+            display: inline-block;
+        }
+
+        .btn-ingresar:hover {
+            background-color: #0090c7;
+        }
+
+        .btn-ingresar:active {
+            transform: scale(0.98);
+        }
+
+        .btn-ingresar:disabled {
+            background-color: #88d4f0;
+            cursor: not-allowed;
+        }
+
+        /* --- MENSAJES --- */
+        .message {
+            margin-top: 15px;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.error {
+            display: block;
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+
+        .message.success {
+            display: block;
+            background-color: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #86efac;
+        }
+
+        .message.loading {
+            display: block;
+            background-color: #e0f2fe;
+            color: #0284c7;
+            border: 1px solid #7dd3fc;
+        }
+
+        /* --- RESULTADOS (Facturas) --- */
+        .results-container {
+            display: none;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .results-container.visible {
+            display: block;
+        }
+
+        .results-container h3 {
+            color: #002d72;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .invoice-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-left: 4px solid #00a3e0;
+        }
+
+        .invoice-card .label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .invoice-card .value {
+            font-size: 16px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .invoice-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .raw-data {
+            margin-top: 15px;
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Botón celular (Oculto en PC) */
+        .btn-portal-mobile,
+        .mobile-bottom-image {
+            display: none;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            background-color: #333;
+            color: #ccc;
+            padding: 15px 50px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        footer a {
+            color: #ccc;
+            text-decoration: none;
+        }
+
+        /* =========================================
+           MEDIA QUERIES (DISEÑO PARA CELULAR)
+           ========================================= */
+        @media (max-width: 768px) {
+            body {
+                background-image: none;
+                background-color: #ffffff;
+            }
+
+            header {
+                padding: 20px;
+                justify-content: center;
+            }
+
+            .btn-portal-desktop {
+                display: none;
+            }
+
+            main {
+                flex-direction: column;
+                justify-content: flex-start;
+                padding: 15px;
+            }
+
+            .card {
+                box-shadow: none;
+                background-color: #f4f4f4;
+            }
+
+            .btn-portal-mobile {
+                display: block;
+                background-color: #002d72;
+                color: white;
+                text-align: center;
+                padding: 15px;
+                border-radius: 30px;
+                text-decoration: none;
+                font-weight: 600;
+                width: 80%;
+                max-width: 280px;
+                margin: 25px auto 0 auto;
+                font-size: 16px;
+            }
+
+            .mobile-bottom-image {
+                display: block;
+                width: 100%;
+                text-align: center;
+                margin-top: 40px;
+                padding-bottom: 20px;
+                border-top: 1px solid #eee;
+                padding-top: 20px;
+            }
+
+            .mobile-bottom-image img {
+                max-width: 90%;
+                height: auto;
+            }
+
+            footer {
+                display: none;
+            }
+        }
+    </style>
+    <!-- Captchas se resuelven en el servidor via Puppeteer -->
+</head>
+<body>
+
+    <!-- ENCABEZADO -->
+    <header>
+        <div class="logo-container">
+            <img src="logo.png" alt="Finesa Logo">
+        </div>
+        <a href="https://portalclientes.finesa.com.co/autenticacion/iniciar-sesion" class="btn-portal-desktop">Ir al portal clientes</a>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main>
+        <!-- Tarjeta del Formulario -->
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active">Soy cliente</div>
+                <div class="tab">Soy asesor de seguros</div>
+            </div>
+
+            <div class="form-content">
+                <h2>¡Realiza tu pago<br>fácil y rápido!</h2>
+                <p class="subtitle">Ingresa tu información</p>
+
+                <form id="loginForm" action="#">
+                    <div class="input-group">
+                        <label for="tipo-doc">Tipo de identificación</label>
+                        <select id="tipo-doc" required>
+                            <option value="" disabled selected>Selecciona tipo de documento</option>
+                            <option value="1">Cédula de Ciudadanía</option>
+                            <option value="2">Cédula de Extranjería</option>
+                            <option value="3">NIT</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="num-doc">Número de identificación</label>
+                        <input type="text" id="num-doc" placeholder="Escribe tu número de identificación"
+                               required pattern="[0-9]+" inputmode="numeric">
+                    </div>
+
+                    <!-- Los captchas se resuelven automáticamente en el servidor -->
+                    <div class="captcha-status" id="captchaStatus" style="display:block; color: #60a5fa; font-size: 12px; text-align: center; margin-top: 10px;">
+                        🤖 Los captchas se resuelven automáticamente vía Puppeteer
+                    </div>
+
+                    <!-- MENSAJE DE ERROR/EXITO -->
+                    <div class="message" id="message"></div>
+
+                    <!-- BOTON INGRESAR (aparece después del captcha) -->
+                    <button type="submit" class="btn-ingresar" id="btnIngresar">Ingresar</button>
+                </form>
+
+                <!-- RESULTADOS -->
+                <div class="results-container" id="resultsContainer">
+                    <h3>Información encontrada:</h3>
+                    <div id="resultsContent"></div>
+                    <details style="margin-top: 10px;">
+                        <summary style="cursor: pointer; color: #00a3e0; font-size: 13px;">Ver respuesta completa (JSON)</summary>
+                        <div class="raw-data" id="rawData"></div>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón de celular -->
+        <a href="https://portalclientes.finesa.com.co/autenticacion/iniciar-sesion" class="btn-portal-mobile">Ir al portal clientes</a>
+
+        <!-- Imagen de celular -->
+        <div class="mobile-bottom-image">
+            <img src="1.png" alt="Con Finesa lo tienes todo">
+        </div>
+    </main>
+
+    <!-- FOOTER (Solo para PC) -->
+    <footer>
+        <div>
+            <a href="https://www.finesa.com.co/términos-y-condiciones">Términos y condiciones</a> |
+            <a href="https://www.finesa.com.co/tratamiento-de-datos">Política de Tratamiento de Datos</a>
+        </div>
+        <div>
+            &copy; Finesa 2026 All Rights Reserved
+        </div>
+    </footer>
+
+    <script>
+        // ============================================================
+        // CONFIGURACIÓN
+        // ============================================================
+        const API_BASE = window.location.origin;
+
+
+        // ============================================================
+        // ELEMENTOS DEL DOM
+        // ============================================================
+        const form = document.getElementById('loginForm');
+        const tipoDoc = document.getElementById('tipo-doc');
+        const numDoc = document.getElementById('num-doc');
+        const btnIngresar = document.getElementById('btnIngresar');
+        const messageEl = document.getElementById('message');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsContent = document.getElementById('resultsContent');
+        const rawData = document.getElementById('rawData');
+        const captchaStatus = document.getElementById('captchaStatus');
+
+        // Solo permitir números en el campo de identificación
+        numDoc.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+
+        // Mostrar botón de inmediato (captchas se resuelven en el server)
+        btnIngresar.classList.add('visible');
+
+        // ============================================================
+        // ENVÍO DEL FORMULARIO
+        // ============================================================
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!tipoDoc.value) {
+                showMessage('Selecciona un tipo de documento', 'error');
+                return;
+            }
+
+            if (!numDoc.value.trim()) {
+                showMessage('Ingresa tu número de identificación', 'error');
+                return;
+            }
+
+            btnIngresar.disabled = true;
+            btnIngresar.textContent = 'Consultando...';
+            showMessage('Abriendo Finesa con Puppeteer... (puede tardar 15-30s)', 'loading');
+            resultsContainer.classList.remove('visible');
+
+            try {
+                const verifyRes = await fetch(`${API_BASE}/api/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        documentType: tipoDoc.value,
+                        identification: numDoc.value.trim(),
+                    }),
+                });
+
+                const verifyData = await verifyRes.json();
+
+                if (!verifyRes.ok) {
+                    showMessage(verifyData.error || `Error ${verifyRes.status}`, 'error');
+                    return;
+                }
+
+                showMessage('Consulta exitosa', 'success');
+                displayResults(verifyData.data);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(`Error de conexión: ${error.message}`, 'error');
+            } finally {
+                btnIngresar.disabled = false;
+                btnIngresar.textContent = 'Ingresar';
+            }
+        });
+
+        // ============================================================
+        // FUNCIONES AUXILIARES
+        // ============================================================
+        function showMessage(text, type) {
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+        }
+
+        function displayResults(data) {
+            resultsContainer.classList.add('visible');
+            rawData.textContent = JSON.stringify(data, null, 2);
+
+            // Si la data es un array de créditos/facturas
+            if (Array.isArray(data)) {
+                resultsContent.innerHTML = data.map(item => `
+                    <div class="invoice-card">
+                        ${Object.entries(item).map(([key, val]) => `
+                            <div class="invoice-row">
+                                <span class="label">${formatLabel(key)}</span>
+                                <span class="value">${val}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            } else if (typeof data === 'object' && data !== null) {
+                // Si es un objeto, mostrarlo como tarjeta
+                resultsContent.innerHTML = `
+                    <div class="invoice-card">
+                        ${Object.entries(data).map(([key, val]) => `
+                            <div class="invoice-row">
+                                <span class="label">${formatLabel(key)}</span>
+                                <span class="value">${typeof val === 'object' ? JSON.stringify(val) : val}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                resultsContent.innerHTML = `<p>${data}</p>`;
+            }
+        }
+
+        function formatLabel(key) {
+            return key
+                .replace(/([A-Z])/g, ' $1')
+                .replace(/_/g, ' ')
+                .replace(/^\w/, c => c.toUpperCase())
+                .trim();
+        }
+    </script>
+
+</body>
+</html>
