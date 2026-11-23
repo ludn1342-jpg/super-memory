@@ -24,20 +24,17 @@ const GEONODE_USER = process.env.GEONODE_USER || '';
 const GEONODE_PASS = process.env.GEONODE_PASS || '';
 const useProxy = !!GEONODE_USER;
 
-// ⚡ CAMBIO: usar lifetime-X para harvest global compartido
-// Con 'session' cada intento abre Puppeteer (lento). Con 'lifetime-X' es 1 sola vez.
 const STICKY_FORMAT = process.env.STICKY_FORMAT || 'lifetime-5';
 
 const JWT_TTL_MS = 10 * 60 * 1000;
 const PRICE_CACHE_TTL_MS = 5 * 60 * 1000;
 const TOKEN_PREFETCH_TTL_MS = 100 * 1000;
-const DELAY_BETWEEN_REQUESTS_MS = 1000;  // ⚡ CAMBIO: de 3000 a 1000ms
+const DELAY_BETWEEN_REQUESTS_MS = 1000;
 const SESSION_TTL_MS = 15 * 60 * 1000;
 
-// ⚡ NUEVO: harvest global compartido + warmup
-let GLOBAL_HARVEST = null;         // { cookies, xsrf, expireAt, promise }
-const HARVEST_TTL_MS = 15 * 60 * 1000;   // 15 min
-const HARVEST_REFRESH_MS = 10 * 60 * 1000; // refresca cada 10 min
+let GLOBAL_HARVEST = null;
+const HARVEST_TTL_MS = 15 * 60 * 1000;
+const HARVEST_REFRESH_MS = 10 * 60 * 1000;
 
 app.use(cors());
 app.use(express.json());
@@ -99,20 +96,17 @@ function proxyCurlArgs(sessionId) {
 }
 
 // ============================================================
-// HARVEST GLOBAL — 1 sola vez por ventana de 10 min
+// HARVEST GLOBAL
 // ============================================================
 async function getGlobalHarvest() {
-  // Si el harvest es válido, usarlo
   if (GLOBAL_HARVEST && GLOBAL_HARVEST.expireAt > Date.now() && GLOBAL_HARVEST.cookies) {
     return GLOBAL_HARVEST;
   }
 
-  // Si ya está en progreso, esperar
   if (GLOBAL_HARVEST && GLOBAL_HARVEST.promise) {
     return GLOBAL_HARVEST.promise;
   }
 
-  // Si no, iniciar uno nuevo
   GLOBAL_HARVEST = { promise: (async () => {
     console.log('[HARVEST-GLOBAL] Abriendo browser (esto se hace 1 vez cada 10 min)...');
     const start = Date.now();
@@ -125,7 +119,11 @@ async function getGlobalHarvest() {
 
     let browser;
     try {
-      browser = await puppeteer.launch({ headless: 'new', args });
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args,
+        executablePath: puppeteer.executablePath(),
+      });
       const page = await browser.newPage();
       if (useProxy) await page.authenticate({ username: proxyUsername('global'), password: GEONODE_PASS });
       await page.setViewport({ width: 1366, height: 768 });
@@ -175,7 +173,6 @@ async function getGlobalHarvest() {
   }
 }
 
-// Arrancar harvest al inicio (warmup)
 async function warmupHarvest() {
   try {
     await getGlobalHarvest();
@@ -185,7 +182,6 @@ async function warmupHarvest() {
   }
 }
 
-// Refrescar harvest cada 10 min
 setInterval(() => {
   if (!GLOBAL_HARVEST || !GLOBAL_HARVEST.expireAt || GLOBAL_HARVEST.expireAt < Date.now() + 5 * 60 * 1000) {
     console.log('[HARVEST-GLOBAL] Refrescando...');
@@ -221,7 +217,7 @@ async function solveCaptcha(type, sitekey, pageUrl) {
   }
   const taskId = createRes.taskId;
   for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 1500));  // ⚡ polling más rápido (1.5s)
+    await new Promise(r => setTimeout(r, 1500));
     const poll = await capsolverPost('getTaskResult', { clientKey: CAPSOLVER_KEY, taskId });
     if (poll.status === 'ready') {
       const t = poll.solution.gRecaptchaResponse || poll.solution.token;
@@ -279,7 +275,6 @@ function buildCookieStringForSession(sessionId) {
   const s = sessions.get(sessionId);
   const cookieParts = {};
 
-  // Mezclar harvest global
   if (GLOBAL_HARVEST && GLOBAL_HARVEST.cookies) {
     for (const pair of GLOBAL_HARVEST.cookies.split(';').map(x => x.trim()).filter(Boolean)) {
       const eq = pair.indexOf('=');
@@ -289,7 +284,6 @@ function buildCookieStringForSession(sessionId) {
 
   let source = GLOBAL_HARVEST && GLOBAL_HARVEST.cookies ? 'harvest' : 'none';
 
-  // Mezclar cookies de sesión (sobreescriben)
   if (s && s.cookies && Object.keys(s.cookies).length > 0) {
     Object.assign(cookieParts, s.cookies);
     source = GLOBAL_HARVEST && GLOBAL_HARVEST.cookies ? 'harvest+session' : 'session';
@@ -445,7 +439,6 @@ app.post('/api/verify', async (req, res) => {
   const start = Date.now();
 
   try {
-    // ⚡ OPTIMIZACIÓN: harvest + captchas + prefetch turnstile en paralelo
     const [_, recaptchaToken, turnstileToken] = await Promise.all([
       getGlobalHarvest().catch(e => { console.warn('[VERIFY] Harvest falló, siguiendo sin él:', e.message); return null; }),
       solveCaptcha('recaptchav3', RECAPTCHA_SITEKEY, `${FINESA_URL}/autenticacion`),
@@ -469,7 +462,6 @@ app.post('/api/verify', async (req, res) => {
     const s = sessions.get(sessionId);
     if (s) s.recaptchaToken = recaptchaToken;
 
-    // ⚡ Prefetch turnstile para el paso 2 (en background)
     if (data.requiresLastFour === true || data.requiresLastFour === undefined) {
       prefetchStep2Tokens(sessionId);
     }
@@ -503,7 +495,6 @@ app.post('/api/verify-credit', async (req, res) => {
     console.log(`\n[CREDIT] ════════════════════════════════════════`);
     console.log(`[CREDIT] sessionId=${sessionId}`);
 
-    // ⚡ El turnstile suele estar prefetched. Si no, se resuelve ahora.
     const turnstileToken = await getStep2Turnstile(sessionId);
     const savedRecaptcha = s.recaptchaToken || '';
 
@@ -579,7 +570,7 @@ async function fetchProductosPage(sessionId) {
 }
 
 // ============================================================
-// PARSER FastPay (v29, sin cambios)
+// PARSER FastPay
 // ============================================================
 function extractFastPayFromHtml(html) {
   const fastPay = extractJsObjectAfter(html, 'window.FastPay');
@@ -865,7 +856,6 @@ app.listen(PORT, async () => {
   console.log(`║  Proxy: ${useProxy ? `${GEONODE_HOST}:${GEONODE_PORT} (${STICKY_FORMAT})` : 'OFF'}`);
   console.log(`╚═══════════════════════════════════════════════════════╝\n`);
 
-  // ⚡ Warmup: hacer harvest al arrancar (no en el primer request)
   console.log('[WARMUP] Haciendo harvest inicial...');
   await warmupHarvest();
   console.log('[SERVER] ✓ Listo — harvest global activo, requests rápidos');
