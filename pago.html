@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Productos | Portal pago en línea Finesa</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===================== HEADER ===================== */
+        .header {
+            background: linear-gradient(135deg, #001a4d 0%, #002d72 50%, #003d8f 100%);
+            color: white;
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .header-left img {
+            height: 38px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-right .user-greeting {
+            text-align: right;
+            line-height: 1.3;
+        }
+
+        .header-right .user-greeting .greeting-text {
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        .header-right .user-greeting .user-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header-right .portal-label {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .btn-cerrar-sesion {
+            background: #0074c1;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-cerrar-sesion:hover {
+            background: #005fa3;
+        }
+
+        /* ===================== MAIN LAYOUT ===================== */
+        .main-container {
+            flex: 1;
+            display: flex;
+            gap: 25px;
+            max-width: 1300px;
+            width: 100%;
+            margin: 30px auto;
+            padding: 0 30px;
+            align-items: flex-start;
+        }
+
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* ===================== SECCIONES ===================== */
+        .section {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-header.green {
+            background: linear-gradient(90deg, #0a8f3c, #10b94e);
+        }
+
+        .section-header.orange {
+            background: linear-gradient(90deg, #d97706, #f59e0b);
+        }
+
+        .section-header .badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .section-header .arrow {
+            transition: transform 0.3s;
+            font-size: 12px;
+        }
+
+        .section-header.collapsed .arrow {
+            transform: rotate(180deg);
+        }
+
+        .section-body {
+            padding: 20px;
+        }
+
+        .section-body.collapsed {
+            display: none;
+        }
+
+        /* Checkbox seleccionar todos */
+        .select-all {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .select-all input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #002d72;
+        }
+
+        /* Tarjeta de crédito */
+        .credit-card {
+            background: #f8fafc;
+            border: 1px solid #e8ecf0;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 15px;
+        }
+
+        .credit-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .credit-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #002d72;
+            flex-shrink: 0;
+        }
+
+        .credit-details {
+            display: flex;
+            flex: 1;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .credit-field {
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .credit-field .field-label {
+            font-size: 12px;
+            color: #888;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .credit-field .field-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .credit-field .field-value.immediate {
+            color: #d97706;
+            font-weight: 700;
+        }
+
+        /* Valor a pagar (radios) */
+        .payment-options {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            margin-top: 15px;
+        }
+
+        .payment-options .pay-label {
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .payment-option input[type="radio"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #002d72;
+            cursor: pointer;
+        }
+
+        .payment-option label {
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .payment-option input[type="text"] {
+            border: none;
+            border-bottom: 2px solid #00a3e0;
+            background: transparent;
+            padding: 4px 0;
+            font-size: 14px;
+            color: #333;
+            width: 120px;
+            outline: none;
+        }
+
+        .credit-count {
+            font-size: 13px;
+            color: #666;
+            padding: 10px 0 0;
+        }
+
+        .empty-message {
+            font-size: 14px;
+            color: #666;
+            padding: 5px 0;
+        }
+
+        .info-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: #eff6ff;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #1e40af;
+            line-height: 1.4;
+        }
+
+        .info-message .info-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .info-message a {
+            color: #002d72;
+            font-weight: 700;
+            text-decoration: underline;
+        }
+
+        /* ===================== SIDEBAR ===================== */
+        .sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 100px;
+        }
+
+        .sidebar-card {
+            background: linear-gradient(180deg, #001a4d 0%, #002d72 100%);
+            color: white;
+            border-radius: 14px;
+            padding: 30px 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,45,114,0.3);
+        }
+
+        .sidebar-card .check-icon {
+            width: 50px;
+            height: 50px;
+            border: 3px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 26px;
+        }
+
+        .sidebar-card .total-label {
+            font-size: 15px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-card .total-amount {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+
+        .sidebar-card .credits-selected {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .btn-pse {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #f5c518;
+            color: #002d72;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn-pse:hover {
+            background: #e6b800;
+        }
+
+        .btn-pse:active {
+            transform: scale(0.97);
+        }
+
+        .btn-pse .pse-logo {
+            font-weight: 800;
+            font-style: italic;
+            font-size: 14px;
+            background: #002d72;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* ===================== FOOTER ===================== */
+        .footer-brands {
+            text-align: center;
+            padding: 25px 20px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-brands .slogan {
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            color: #00a3e0;
+            font-size: 15px;
+        }
+
+        .footer-brands img {
+            height: 28px;
+        }
+
+        .footer-brands .brand-text {
+            font-size: 14px;
+            font-weight: 700;
+            color: #002d72;
+        }
+
+        .footer-copy {
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* ===================== MOBILE ===================== */
+        @media (max-width: 900px) {
+            .header {
+                flex-direction: column;
+                height: auto;
+                padding: 15px 20px;
+                gap: 8px;
+            }
+
+            .header-left {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .main-container {
+                flex-direction: column;
+                padding: 0 15px;
+                margin: 15px auto;
+                gap: 15px;
+            }
+
+            .sidebar {
+                width: 100%;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                top: auto;
+                z-index: 90;
+            }
+
+            .sidebar-card {
+                border-radius: 0;
+                padding: 12px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 15px;
+                box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            }
+
+            .sidebar-card .check-icon {
+                display: none;
+            }
+
+            .sidebar-mobile-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .sidebar-mobile-left .mobile-check {
+                width: 28px;
+                height: 28px;
+                border: 2px solid white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+                flex-shrink: 0;
+            }
+
+            .sidebar-mobile-left .mobile-total-info {
+                text-align: left;
+            }
+
+            .sidebar-card .total-label {
+                font-size: 13px;
+                margin: 0;
+            }
+
+            .sidebar-card .total-amount {
+                font-size: 22px;
+                margin: 0;
+            }
+
+            .sidebar-card .credits-selected {
+                display: none;
+            }
+
+            .btn-pse {
+                width: auto;
+                padding: 12px 24px;
+                font-size: 14px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .content-area {
+                padding-bottom: 80px;
+            }
+
+            .credit-details {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .credit-field {
+                text-align: left;
+                display: flex;
+                gap: 8px;
+                align-items: baseline;
+                min-width: auto;
+            }
+
+            .payment-options {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .footer-brands {
+                padding-bottom: 80px;
+            }
+
+            .btn-cerrar-sesion {
+                background: transparent;
+                padding: 5px 10px;
+                font-size: 13px;
+                text-decoration: underline;
+            }
+        }
+
+        /* ===================== NO DATA STATE ===================== */
+        .no-data-container {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .no-data-container h2 {
+            color: #002d72;
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        .no-data-container p {
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 20px;
+        }
+
+        .no-data-container .btn-volver {
+            display: inline-block;
+            background: #00a3e0;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <img src="log1.png" alt="Finesa" id="headerLogo">
+            <span class="portal-label" id="portalLabel">Portal de pagos</span>
+        </div>
+        <div class="header-right">
+            <div class="user-greeting">
+                <div class="greeting-text">Hola, <span id="userName">Cliente</span></div>
+            </div>
+            <a href="index.html" class="btn-cerrar-sesion">Cerrar sesión</a>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-container" id="mainContent">
+
+        <!-- CONTENT AREA -->
+        <div class="content-area" id="contentArea">
+
+            <!-- Sección: Pagos pendientes -->
+            <div class="section" id="sectionPagos">
+                <div class="section-header green" onclick="toggleSection('pagos')">
+                    <span>Pagos pendientes</span>
+                    <span class="badge">
+                        <span id="creditCount">0 Créditos</span>
+                        <span class="arrow" id="arrowPagos">&#9650;</span>
+                    </span>
+                </div>
+                <div class="section-body" id="bodyPagos">
+                    <div class="select-all">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                        <label for="selectAll">Seleccionar todos los créditos</label>
+                    </div>
+                    <div id="creditsList"></div>
+                    <p class="credit-count" id="creditCountText">0 Crédito(s) con factura pendiente de pago</p>
+                </div>
+            </div>
+
+            <!-- Sección: Créditos pendientes por facturar -->
+            <div class="section">
+                <div class="section-header orange" onclick="toggleSection('facturar')">
+                    <span>Créditos pendientes por facturar</span>
+                    <span class="badge">
+                        No hay créditos
+                        <span class="arrow" id="arrowFacturar">&#9650;</span>
+                    </span>
+                </div>
+                <div class="section-body" id="bodyFacturar">
+                    <p class="empty-message">0 Crédito(s) pendiente por facturar</p>
+                </div>
+            </div>
+
+            <!-- Sección: Primera cuota -->
+            <div class="section">
+                <div class="section-header orange" onclick="toggleSection('primera')">
+                    <span>Primera cuota (Finanprimas)</span>
+                    <span class="badge">
+                        No hay créditos
+                        <span class="arrow" id="arrowPrimera">&#9650;</span>
+                    </span>
+                </div>
+                <div class="section-body" id="bodyPrimera">
+                    <p class="empty-message">0 Primera(s) cuota(s) pendiente(s) por pagar</p>
+                    <div class="info-message">
+                        <span class="info-icon">&#8505;</span>
+                        <span>Si tienes un pago de primera cuota pendiente (Finanprimas) y no lo visualizas, haz <a href="https://portalclientes.finesa.com.co/autenticacion/iniciar-sesion">CLIC AQUÍ</a>.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SIDEBAR -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-card">
+                <div class="check-icon">&#10003;</div>
+
+                <!-- Mobile layout -->
+                <div class="sidebar-mobile-left">
+                    <div class="mobile-check">&#10003;</div>
+                    <div class="mobile-total-info">
+                        <div class="total-label">Total a pagar:</div>
+                        <div class="total-amount" id="totalAmount">$0</div>
+                    </div>
+                </div>
+
+                <!-- Desktop only -->
+                <div class="total-label desktop-only">Total a pagar</div>
+                <div class="total-amount desktop-only" id="totalAmountDesktop">$0</div>
+                <div class="credits-selected"><span id="selectedCount">0</span> Crédito(s)<br>seleccionado(s)</div>
+
+                <a href="#" class="btn-pse" id="btnPSE">
+                    Ir a pago PSE <span class="pse-logo">$PSE</span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER BRANDS -->
+    <div class="footer-brands">
+        <span class="slogan">Con Finesa, lo tienes todo</span>
+        <img src="logo.png" alt="Finesa" style="height: 24px;">
+        <span class="brand-text" style="color: #e63946;">Finanprimas</span>
+        <span class="brand-text" style="color: #002d72;">Finesa <span style="color: #00a3e0;">Cash</span></span>
+    </div>
+    <div class="footer-copy">
+        <a href="https://www.finesa.com.co/términos-y-condiciones" style="color: #999; text-decoration: none;">Términos y condiciones</a> |
+        <a href="https://www.finesa.com.co/tratamiento-de-datos" style="color: #999; text-decoration: none;">Política de Tratamiento de Datos</a>
+        <br>&copy; Finesa 2026 All Rights Reserved
+    </div>
+
+    <style>
+        /* Hide desktop-only elements on mobile */
+        @media (max-width: 900px) {
+            .desktop-only { display: none !important; }
+            .sidebar-mobile-left { display: flex !important; }
+        }
+        @media (min-width: 901px) {
+            .sidebar-mobile-left { display: none !important; }
+        }
+    </style>
+
+    <script>
+        // ============================================================
+        // RECIBIR DATOS DESDE INDEX.HTML
+        // ============================================================
+        let paymentData = null;
+        let selectedCredits = new Set();
+
+        function init() {
+            // Leer datos de localStorage (enviados por index.html)
+            const raw = localStorage.getItem('finesaPaymentData');
+            if (!raw) {
+                showNoData();
+                return;
+            }
+
+            try {
+                paymentData = JSON.parse(raw);
+            } catch (e) {
+                showNoData();
+                return;
+            }
+
+            renderData(paymentData);
+        }
+
+        function showNoData() {
+            document.getElementById('contentArea').innerHTML = `
+                <div class="section">
+                    <div class="no-data-container">
+                        <h2>No hay datos de verificación</h2>
+                        <p>Debes iniciar sesión primero para ver tus productos.</p>
+                        <a href="index.html" class="btn-volver">Volver al inicio</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderData(data) {
+            // Nombre del cliente
+            const name = data.customerName || data.customer_name || data.name || data.nombre ||
+                         data.clientName || data.client_name || 'Cliente';
+            document.getElementById('userName').textContent = name;
+
+            // Extraer créditos del response
+            let credits = [];
+
+            if (data.credits && Array.isArray(data.credits)) {
+                credits = data.credits;
+            } else if (data.products && Array.isArray(data.products)) {
+                credits = data.products;
+            } else if (Array.isArray(data)) {
+                credits = data;
+            } else if (data.credit || data.credito) {
+                credits = [data.credit || data.credito];
+            } else {
+                // Intentar extraer info del objeto directamente
+                credits = [{
+                    product: data.product || data.producto || data.productName || 'Finanprimas',
+                    creditNumber: data.creditNumber || data.credit_number || data.numero_credito || data.creditNo || '****',
+                    amount: data.amount || data.valor || data.value || data.totalAmount || data.total || 0,
+                    dueDate: data.dueDate || data.due_date || data.fechaLimite || data.fecha_limite || data.paymentDate || 'INMEDIATO',
+                }];
+            }
+
+            // Si no hay créditos válidos, mostrar el objeto raw como un crédito
+            if (credits.length === 0 || (credits.length === 1 && !credits[0].amount && !credits[0].valor)) {
+                credits = [{
+                    product: 'Finanprimas',
+                    creditNumber: '****',
+                    amount: 0,
+                    dueDate: 'INMEDIATO',
+                    rawData: data,
+                }];
+            }
+
+            // Actualizar contadores
+            document.getElementById('creditCount').textContent = `${credits.length} Créditos`;
+            document.getElementById('creditCountText').textContent = `${credits.length} Crédito(s) con factura pendiente de pago`;
+
+            // Renderizar cada crédito
+            const listEl = document.getElementById('creditsList');
+            listEl.innerHTML = '';
+
+            credits.forEach((credit, idx) => {
+                const product = credit.product || credit.producto || credit.productName || credit.product_name || 'Finanprimas';
+                const creditNum = credit.creditNumber || credit.credit_number || credit.numero_credito ||
+                                  credit.creditNo || credit.credit_no || credit.number || '****';
+                const amount = credit.amount || credit.valor || credit.value || credit.totalAmount ||
+                               credit.total || credit.monto || 0;
+                const dueDate = credit.dueDate || credit.due_date || credit.fechaLimite ||
+                                credit.fecha_limite || credit.paymentDate || credit.payment_date || 'INMEDIATO';
+
+                const maskedNum = maskCreditNumber(creditNum);
+                const formattedAmount = formatCurrency(amount);
+
+                const card = document.createElement('div');
+                card.className = 'credit-card';
+                card.innerHTML = `
+                    <div class="credit-row">
+                        <input type="checkbox" id="credit_${idx}" data-idx="${idx}" data-amount="${amount}"
+                               onchange="toggleCredit(${idx}, ${amount})">
+                        <div class="credit-details">
+                            <div class="credit-field">
+                                <div class="field-label">Producto</div>
+                                <div class="field-value">${product}</div>
+                            </div>
+                            <div class="credit-field">
+                                <div class="field-label">Crédito N°</div>
+                                <div class="field-value">${maskedNum}</div>
+                            </div>
+                            <div class="credit-field">
+                                <div class="field-label">Valor a pagar</div>
+                                <div class="field-value">${formattedAmount}</div>
+                            </div>
+                            <div class="credit-field">
+                                <div class="field-label">Fecha límite de pago</div>
+                                <div class="field-value ${dueDate === 'INMEDIATO' ? 'immediate' : ''}">${dueDate}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="payment-options">
+                        <span class="pay-label">Valor a pagar:</span>
+                        <div class="payment-option">
+                            <input type="radio" name="paytype_${idx}" id="payfull_${idx}" value="full" checked>
+                            <label for="payfull_${idx}">${formattedAmount}</label>
+                        </div>
+                        <div class="payment-option">
+                            <input type="radio" name="paytype_${idx}" id="payother_${idx}" value="other">
+                            <label for="payother_${idx}">Otro valor</label>
+                            <input type="text" placeholder="" style="display:none" id="otherval_${idx}">
+                        </div>
+                    </div>
+                `;
+
+                listEl.appendChild(card);
+
+                // Mostrar/ocultar campo otro valor
+                const radioOther = card.querySelector(`#payother_${idx}`);
+                const radioFull = card.querySelector(`#payfull_${idx}`);
+                const otherInput = card.querySelector(`#otherval_${idx}`);
+
+                radioOther.addEventListener('change', () => {
+                    if (radioOther.checked) otherInput.style.display = 'inline-block';
+                });
+                radioFull.addEventListener('change', () => {
+                    otherInput.style.display = 'none';
+                });
+            });
+        }
+
+        // ============================================================
+        // FUNCIONES DE SELECCIÓN
+        // ============================================================
+        function toggleCredit(idx, amount) {
+            const cb = document.getElementById(`credit_${idx}`);
+            if (cb.checked) {
+                selectedCredits.add(idx);
+            } else {
+                selectedCredits.delete(idx);
+            }
+            updateTotals();
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('#creditsList input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+                const idx = parseInt(cb.dataset.idx);
+                if (selectAll.checked) {
+                    selectedCredits.add(idx);
+                } else {
+                    selectedCredits.delete(idx);
+                }
+            });
+            updateTotals();
+        }
+
+        function updateTotals() {
+            let total = 0;
+            selectedCredits.forEach(idx => {
+                const cb = document.getElementById(`credit_${idx}`);
+                if (cb) total += parseFloat(cb.dataset.amount) || 0;
+            });
+
+            const formatted = formatCurrency(total);
+            document.getElementById('totalAmount').textContent = formatted;
+            document.getElementById('totalAmountDesktop').textContent = formatted;
+            document.getElementById('selectedCount').textContent = selectedCredits.size;
+        }
+
+        // ============================================================
+        // SECCIONES COLAPSABLES
+        // ============================================================
+        function toggleSection(name) {
+            const body = document.getElementById(`body${capitalize(name)}`);
+            const arrow = document.getElementById(`arrow${capitalize(name)}`);
+            if (body.classList.contains('collapsed')) {
+                body.classList.remove('collapsed');
+                arrow.style.transform = '';
+            } else {
+                body.classList.add('collapsed');
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // ============================================================
+        // UTILIDADES
+        // ============================================================
+        function maskCreditNumber(num) {
+            const str = String(num);
+            if (str.length <= 4) return '*****' + str;
+            return '*'.repeat(str.length - 4) + str.slice(-4);
+        }
+
+        function formatCurrency(amount) {
+            const num = parseFloat(amount) || 0;
+            return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        // Inicializar al cargar
+        init();
+    </script>
+
+</body>
+</html>

